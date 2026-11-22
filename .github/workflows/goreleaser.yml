@@ -32,6 +32,9 @@ jobs:
         run: |
           ./package.sh
 
+      - name: Clean git state
+        run: git checkout -- .
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
