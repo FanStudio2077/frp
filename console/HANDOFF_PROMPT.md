@@ -31,7 +31,7 @@
 ## 5. 技术栈与目录
 - 后端：Go 1.26，标准库 `net/http`（Go 1.22+ 路由模式）；SQLite（`modernc.org/sqlite`）；bcrypt；JWT/会话 Cookie。
 - 前端：Vue3 + Element Plus + Vite + vue-i18n；可复用本仓库 `web/shared`（vite alias `@shared → ../../web/shared`）与 frpc 代理表单（`@frpc → ../../web/frpc/src`）。
-- 目录：`console/backend`（独立 module `github.com/FanStudio3077/frp-console` 注意以实际 go.mod 为准）、`console/web`。
+- 目录：`console/backend`（独立 module `github.com/FanStudio2077/frp-console`）、`console/web`。
 
 ## 6. 数据模型（见 `console/backend/internal/store/migrations/0001_init.sql`）
 - users(id, username unique, password_hash, role, disabled, created_at)
