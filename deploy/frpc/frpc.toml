@@ -1,0 +1,24 @@
+# frpc configuration (v0.73.0)
+serverAddr = "YOUR_SERVER_IP"
+serverPort = 7000
+auth.method = "token"
+auth.token = "CHANGE_ME_TOKEN"
+
+# 多服务器配置（可选，按 priority 故障转移；顶层 serverAddr 作为兜底）
+servers = [
+  { name = "main", serverAddr = "YOUR_SERVER_IP", serverPort = 7000, priority = 0, enabled = true },
+  # { name = "backup", serverAddr = "BACKUP_IP", serverPort = 7000, priority = 1, enabled = true },
+]
+
+# frpc 管理面板
+webServer.addr = "0.0.0.0"
+webServer.port = 7400
+webServer.user = "admin"
+webServer.password = "CHANGE_ME_FRPC"
+
+[[proxies]]
+name = "ssh"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 22
+remotePort = 6000

@@ -1,0 +1,28 @@
+# frps configuration (v0.73.0)
+bindAddr = "0.0.0.0"
+bindPort = 7000
+kcpBindPort = 7000
+vhostHTTPPort = 80
+vhostHTTPSPort = 443
+subDomainHost = "frp.example.com"
+
+auth.method = "token"
+auth.token = "CHANGE_ME_TOKEN"
+
+# Web dashboard / API (also serves audit log, RBAC, alerts, config reload)
+webServer.addr = "0.0.0.0"
+webServer.port = 7500
+webServer.user = "admin"
+webServer.password = "CHANGE_ME_ADMIN"
+# RBAC extra users (role: admin | viewer)
+webServer.users = [
+  { user = "viewer", password = "CHANGE_ME_VIEWER", role = "viewer" },
+]
+
+# Monitoring alerts (hot-reloadable via API / SIGHUP)
+alerts.enabled = true
+alerts.maxOnlineClients = 100
+alerts.maxCurConns = 1000
+alerts.checkIntervalSeconds = 10
+
+log.level = "info"

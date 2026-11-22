@@ -1,0 +1,10 @@
+services:
+  frpc:
+    image: ghcr.io/fanstudio2077/frpc:v0.73.0
+    container_name: frpc
+    restart: unless-stopped
+    # host 网络：访问本机 127.0.0.1 的服务最直接
+    network_mode: host
+    volumes:
+      - ./frpc.toml:/etc/frp/frpc.toml:ro
+    command: ["-c", "/etc/frp/frpc.toml"]

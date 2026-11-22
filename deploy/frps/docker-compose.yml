@@ -1,0 +1,10 @@
+services:
+  frps:
+    image: ghcr.io/fanstudio2077/frps:v0.73.0
+    container_name: frps
+    restart: unless-stopped
+    # host 网络：代理端口(remotePort/80/443)与 7000 直接对外，无需逐个映射
+    network_mode: host
+    volumes:
+      - ./frps.toml:/etc/frp/frps.toml:ro
+    command: ["-c", "/etc/frp/frps.toml"]
