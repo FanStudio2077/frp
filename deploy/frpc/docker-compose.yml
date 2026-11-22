@@ -3,8 +3,19 @@ services:
     image: ghcr.io/fanstudio2077/frpc:v0.73.0
     container_name: frpc
     restart: unless-stopped
-    # host 网络：访问本机 127.0.0.1 的服务最直接
     network_mode: host
+    # 用 entrypoint 根据环境变量自动生成 frpc.toml
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    environment:
+      TZ: Asia/Shanghai
+      FRP_SERVER_ADDR: ${FRP_SERVER_ADDR:-}
+      FRP_SERVER_PORT: ${FRP_SERVER_PORT:-7000}
+      FRP_TOKEN: ${FRP_TOKEN:-}
+      FRP_WEB_PORT: ${FRP_WEB_PORT:-7400}
+      FRP_WEB_USER: ${FRP_WEB_USER:-admin}
+      FRP_WEB_PASS: ${FRP_WEB_PASS:-change-me}
+      FRP_SERVERS: ${FRP_SERVERS:-}
+      FRP_PROXIES: ${FRP_PROXIES:-}
     volumes:
-      - ./frpc.toml:/etc/frp/frpc.toml:ro
-    command: ["-c", "/etc/frp/frpc.toml"]
+      - ./entrypoint.sh:/entrypoint.sh:ro
+      - ./data:/etc/frp

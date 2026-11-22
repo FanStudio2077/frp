@@ -32,3 +32,16 @@ docker compose logs -f
 ```bash
 docker compose pull && docker compose up -d
 ```
+
+## frpc 配置自动生成（推荐）
+不用手写 frpc.toml，直接用环境变量启动，容器启动时会自动生成 /etc/frp/frpc.toml：
+```bash
+cd deploy/frpc
+cp .env.example .env      # 修改 FRP_SERVER_ADDR / FRP_TOKEN 等
+docker compose up -d
+docker compose logs -f     # 会打印生成的 frpc.toml
+```
+- 生成的配置持久化在 ./data/frpc.toml（面板「配置」页的修改也会写回这里）。
+- 复杂代理/多服务器：在 .env 用 `FRP_PROXIES` / `FRP_SERVERS`（TOML 片段，`\n` 换行），或直接编辑 ./data/frpc.toml 后 `docker compose restart frpc`。
+- 也可用 `FRP_CONFIG_B64` 传整份 base64 配置。
+- 不想自动生成：把现成 frpc.toml 放到 ./data/frpc.toml，并清空 FRP_SERVER_ADDR 即可沿用文件。
