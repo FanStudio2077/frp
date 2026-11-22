@@ -38,6 +38,9 @@ jobs:
             echo "TAG_NAME=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
           fi
 
+      - name: Compute lowercase owner
+        run: echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
+
       - name: Login to GHCR
         uses: docker/login-action@v4
         with:
@@ -49,8 +52,8 @@ jobs:
         run: |
           echo "DOCKERFILE_FRPC_PATH=dockerfiles/Dockerfile-for-frpc" >> $GITHUB_ENV
           echo "DOCKERFILE_FRPS_PATH=dockerfiles/Dockerfile-for-frps" >> $GITHUB_ENV
-          echo "TAG_FRPC=ghcr.io/${{ github.repository_owner }}/frpc:${TAG_NAME}" >> $GITHUB_ENV
-          echo "TAG_FRPS=ghcr.io/${{ github.repository_owner }}/frps:${TAG_NAME}" >> $GITHUB_ENV
+          echo "TAG_FRPC=ghcr.io/${OWNER_LC}/frpc:${TAG_NAME}" >> $GITHUB_ENV
+          echo "TAG_FRPS=ghcr.io/${OWNER_LC}/frps:${TAG_NAME}" >> $GITHUB_ENV
 
       - name: Build and push frpc
         uses: docker/build-push-action@v7
