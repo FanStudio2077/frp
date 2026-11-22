@@ -27,7 +27,7 @@ func NewMetricsServer(cfg v1.MetricsServerConfig, metricsHandler http.Handler) (
 	if cfg.Port == 0 {
 		return nil, nil
 	}
-	s, err := newServer(cfg.Addr, cfg.Port, cfg.User, cfg.Password, cfg.TLS)
+	s, err := newServer(cfg.Addr, cfg.Port, cfg.User, cfg.Password, cfg.TLS, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -39,6 +39,7 @@ import (
 	v1 "github.com/fatedier/frp/pkg/config/v1"
 	"github.com/fatedier/frp/pkg/config/v1/validation"
 	modelmetrics "github.com/fatedier/frp/pkg/metrics"
+	"github.com/fatedier/frp/pkg/metrics/mem"
 	"github.com/fatedier/frp/pkg/msg"
 	"github.com/fatedier/frp/pkg/nathole"
 	plugin "github.com/fatedier/frp/pkg/plugin/server"
@@ -53,6 +54,8 @@ import (
 	"github.com/fatedier/frp/pkg/util/version"
 	"github.com/fatedier/frp/pkg/util/vhost"
 	"github.com/fatedier/frp/pkg/util/xlog"
+	"github.com/fatedier/frp/server/audit"
+	"github.com/fatedier/frp/server/monitor"
 	"github.com/fatedier/frp/server/controller"
 	"github.com/fatedier/frp/server/group"
 	"github.com/fatedier/frp/server/ports"
@@ -111,6 +114,16 @@ type Service struct {
 	// Manage all proxies
 	pxyManager *proxy.Manager
 
+	// In-memory audit log for admin operations
+	auditStore *audit.Store
+
+	// Runtime monitoring alert engine
+	alertEngine *monitor.Engine
+
+	// config file path (for hot reload and web user persistence)
+	configFilePath string
+	cfgMu          sync.RWMutex
+
 	// Manage all plugins
 	pluginManager *plugin.Manager
 
@@ -164,6 +177,8 @@ func NewService(cfg *v1.ServerConfig) (*Service, error) {
 		ctlManager:     NewControlManager(clientRegistry),
 		clientRegistry: clientRegistry,
 		pxyManager:     proxy.NewManager(),
+		auditStore:     audit.NewStore(1000),
+		alertEngine:    monitor.NewEngine(cfg.Alerts),
 		pluginManager:  plugin.NewManager(),
 		rc: &controller.ResourceController{
 			VisitorManager: visitor.NewManager(),
@@ -447,6 +462,10 @@ func (svr *Service) Run(ctx context.Context) {
 		}()
 	}
 
+	if svr.alertEngine != nil {
+		go svr.runAlertLoop()
+	}
+
 	go svr.HandleListener(svr.sshTunnelListener, true)
 
 	if svr.kcpListener != nil {
@@ -519,6 +538,34 @@ func (svr *Service) closeResources() {
 	svr.rc.Close()
 	svr.muxer.Close()
 	svr.ctlManager.Close()
+}
+
+func (svr *Service) runAlertLoop() {
+	interval := time.Duration(svr.cfg.Alerts.CheckIntervalSeconds) * time.Second
+	if interval <= 0 {
+		interval = 10 * time.Second
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-svr.ctx.Done():
+			return
+		case now := <-ticker.C:
+			stats := mem.StatsCollector.GetServer()
+			var online int64
+			for _, c := range svr.clientRegistry.List() {
+				if c.Online {
+					online++
+				}
+			}
+			var conns int64
+			if stats != nil {
+				conns = stats.CurConns
+			}
+			svr.alertEngine.Evaluate(now, online, conns)
+		}
+	}
 }
 
 func (svr *Service) handleConnection(ctx context.Context, conn net.Conn, internal bool, session io.Closer) {

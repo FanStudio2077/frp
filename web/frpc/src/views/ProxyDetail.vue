@@ -3,7 +3,7 @@
     <!-- Fixed Header -->
     <div class="detail-top">
       <nav class="breadcrumb">
-        <router-link :to="isStore ? '/proxies?tab=store' : '/proxies'" class="breadcrumb-link">Proxies</router-link>
+        <router-link :to="isStore ? '/proxies?tab=store' : '/proxies'" class="breadcrumb-link">{{ t('client.proxies.title') }}</router-link>
         <span class="breadcrumb-sep">&rsaquo;</span>
         <span class="breadcrumb-current">{{ proxyName }}</span>
       </nav>
@@ -34,10 +34,10 @@
 
     <!-- Scrollable Content -->
     <div v-if="notFound" class="not-found">
-      <p class="empty-text">Proxy not found</p>
-      <p class="empty-hint">The proxy "{{ proxyName }}" does not exist.</p>
+      <p class="empty-text">{{ t('client.proxyDetail.notFoundTitle') }}</p>
+      <p class="empty-hint">{{ t('client.proxyDetail.notFoundDesc', { name: proxyName }) }}</p>
       <ActionButton variant="outline" @click="router.push('/proxies')">
-        Back to Proxies
+        {{ t('client.proxyDetail.backToProxies') }}
       </ActionButton>
     </div>
 
@@ -46,7 +46,7 @@
       <div v-if="proxy.err" class="error-banner">
         <el-icon class="error-icon"><Warning /></el-icon>
         <div>
-          <div class="error-title">Connection Error</div>
+          <div class="error-title">{{ t('client.proxyDetail.connectionError') }}</div>
           <div class="error-message">{{ proxy.err }}</div>
         </div>
       </div>
@@ -66,6 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Warning } from '@element-plus/icons-vue'
@@ -78,6 +79,7 @@ import type { ProxyStatus, ProxyDefinition, ProxyFormData } from '../types'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const proxyStore = useProxyStore()
 
 const proxyName = route.params.name as string
@@ -131,7 +133,7 @@ onMounted(async () => {
       notFound.value = true
     }
   } catch (err: any) {
-    ElMessage.error('Failed to load proxy: ' + err.message)
+    ElMessage.error(t('client.proxyDetail.loadFailed') + err.message)
   } finally {
     loading.value = false
   }

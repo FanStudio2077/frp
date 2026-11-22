@@ -2,14 +2,14 @@
   <div class="visitor-edit-page">
     <div class="edit-header">
       <nav class="breadcrumb">
-        <router-link to="/visitors" class="breadcrumb-item">Visitors</router-link>
+        <router-link to="/visitors" class="breadcrumb-item">{{ t('client.nav.visitors') }}</router-link>
         <span class="breadcrumb-separator">›</span>
-        <span class="breadcrumb-current">{{ isEditing ? 'Edit Visitor' : 'New Visitor' }}</span>
+        <span class="breadcrumb-current">{{ isEditing ? t('client.edit.editVisitor') : t('client.edit.newVisitor') }}</span>
       </nav>
       <div class="header-actions">
-        <ActionButton variant="outline" size="small" @click="goBack">Cancel</ActionButton>
+        <ActionButton variant="outline" size="small" @click="goBack">{{ t('common.cancel') }}</ActionButton>
         <ActionButton size="small" :loading="saving" @click="handleSave">
-          {{ isEditing ? 'Update' : 'Create' }}
+          {{ isEditing ? t('client.edit.update') : t('client.edit.create') }}
         </ActionButton>
       </div>
     </div>
@@ -28,8 +28,8 @@
 
     <ConfirmDialog
       v-model="leaveDialogVisible"
-      title="Unsaved Changes"
-      message="You have unsaved changes. Are you sure you want to leave?"
+      :title="t('client.edit.unsavedTitle')"
+      :message="t('client.edit.unsavedMessage')"
       :is-mobile="isMobile"
       @confirm="handleLeaveConfirm"
       @cancel="handleLeaveCancel"
@@ -39,6 +39,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ActionButton from '@shared/components/ActionButton.vue'
@@ -56,6 +57,7 @@ import { getStoreVisitor } from '../api/frpc'
 import { useVisitorStore } from '../stores/visitor'
 
 const { isMobile } = useResponsive()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const visitorStore = useVisitorStore()
@@ -71,35 +73,35 @@ const trackChanges = ref(false)
 
 const formRules: FormRules = {
   name: [
-    { required: true, message: 'Name is required', trigger: 'blur' },
-    { min: 1, max: 50, message: 'Length should be 1 to 50', trigger: 'blur' },
+    { required: true, message: t('client.validate.nameRequired'), trigger: 'blur' },
+    { min: 1, max: 50, message: t('client.validate.lengthRange'), trigger: 'blur' },
   ],
-  type: [{ required: true, message: 'Type is required', trigger: 'change' }],
+  type: [{ required: true, message: t('client.validate.typeRequired'), trigger: 'change' }],
   serverName: [
-    { required: true, message: 'Server name is required', trigger: 'blur' },
+    { required: true, message: t('client.validate.serverNameRequired'), trigger: 'blur' },
   ],
   bindPort: [
-    { required: true, message: 'Bind port is required', trigger: 'blur' },
+    { required: true, message: t('client.validate.bindPortRequired'), trigger: 'blur' },
     {
       validator: (_rule, value, callback) => {
         if (value == null) {
-          callback(new Error('Bind port is required'))
+          callback(new Error(t('client.validate.bindPortRequired')))
           return
         }
         if (value > 65535) {
-          callback(new Error('Bind port must be less than or equal to 65535'))
+          callback(new Error(t('client.validate.bindPortRange')))
           return
         }
         if (form.value.type === 'sudp') {
           if (value < 1) {
-            callback(new Error('SUDP bind port must be greater than 0'))
+            callback(new Error(t('client.validate.sudpBindPort')))
             return
           }
           callback()
           return
         }
         if (value === 0) {
-          callback(new Error('Bind port cannot be 0'))
+          callback(new Error(t('client.validate.bindPortZero')))
           return
         }
         callback()
@@ -115,7 +117,7 @@ const formRules: FormRules = {
           (form.value.type === 'stcp' || form.value.type === 'xtcp') &&
           !value?.trim()
         ) {
-          callback(new Error('Destination IP is required for virtual_net'))
+          callback(new Error(t('client.validate.destinationIPRequired')))
           return
         }
         callback()

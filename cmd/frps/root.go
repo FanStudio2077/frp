@@ -18,7 +18,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -120,6 +122,18 @@ func runServer(cfg *v1.ServerConfig) (err error) {
 	svr, err := server.NewService(cfg)
 	if err != nil {
 		return err
+	}
+	svr.SetConfigFilePath(cfgFile)
+	if cfgFile != "" {
+		go func() {
+			ch := make(chan os.Signal, 1)
+			signal.Notify(ch, syscall.SIGHUP)
+			for range ch {
+				if _, err := svr.ReloadConfigFromFile(); err != nil {
+					log.Warnf("reload config from file failed: %v", err)
+				}
+			}
+		}()
 	}
 	log.Infof("frps started successfully")
 	svr.Run(context.Background())

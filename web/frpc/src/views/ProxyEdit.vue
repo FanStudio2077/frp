@@ -3,14 +3,14 @@
     <!-- Header with breadcrumb and actions -->
     <div class="edit-header">
       <nav class="breadcrumb">
-        <router-link to="/proxies?tab=store" class="breadcrumb-item">Proxies</router-link>
+        <router-link to="/proxies?tab=store" class="breadcrumb-item">{{ t('client.proxies.title') }}</router-link>
         <span class="breadcrumb-separator">&rsaquo;</span>
-        <span class="breadcrumb-current">{{ isEditing ? 'Edit Proxy' : 'New Proxy' }}</span>
+        <span class="breadcrumb-current">{{ isEditing ? t('client.edit.editProxy') : t('client.edit.newProxy') }}</span>
       </nav>
       <div class="header-actions">
-        <ActionButton variant="outline" size="small" @click="goBack">Cancel</ActionButton>
+        <ActionButton variant="outline" size="small" @click="goBack">{{ t('common.cancel') }}</ActionButton>
         <ActionButton size="small" :loading="saving" @click="handleSave">
-          {{ isEditing ? 'Update' : 'Create' }}
+          {{ isEditing ? t('client.edit.update') : t('client.edit.create') }}
         </ActionButton>
       </div>
     </div>
@@ -29,8 +29,8 @@
 
     <ConfirmDialog
       v-model="leaveDialogVisible"
-      title="Unsaved Changes"
-      message="You have unsaved changes. Are you sure you want to leave?"
+      :title="t('client.edit.unsavedTitle')"
+      :message="t('client.edit.unsavedMessage')"
       :is-mobile="isMobile"
       @confirm="handleLeaveConfirm"
       @cancel="handleLeaveCancel"
@@ -40,6 +40,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -57,6 +58,7 @@ import ProxyFormLayout from '../components/proxy-form/ProxyFormLayout.vue'
 import { useResponsive } from '../composables/useResponsive'
 
 const { isMobile } = useResponsive()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const proxyStore = useProxyStore()
@@ -72,15 +74,15 @@ const trackChanges = ref(false)
 
 const rules: FormRules = {
   name: [
-    { required: true, message: 'Name is required', trigger: 'blur' },
-    { min: 1, max: 50, message: 'Length should be 1 to 50', trigger: 'blur' },
+    { required: true, message: t('client.validate.nameRequired'), trigger: 'blur' },
+    { min: 1, max: 50, message: t('client.validate.lengthRange'), trigger: 'blur' },
   ],
-  type: [{ required: true, message: 'Type is required', trigger: 'change' }],
+  type: [{ required: true, message: t('client.validate.typeRequired'), trigger: 'change' }],
   localPort: [
     {
       validator: (_rule, value, callback) => {
         if (!form.value.pluginType && value == null) {
-          callback(new Error('Local port is required'))
+          callback(new Error(t('client.validate.localPortRequired')))
         } else {
           callback()
         }
@@ -96,7 +98,7 @@ const rules: FormRules = {
           (!value || value.length === 0) &&
           !form.value.subdomain
         ) {
-          callback(new Error('Custom domains or subdomain is required'))
+          callback(new Error(t('client.validate.customDomainRequired')))
         } else {
           callback()
         }
@@ -108,7 +110,7 @@ const rules: FormRules = {
     {
       validator: (_rule, value, callback) => {
         if (form.value.healthCheckType === 'http' && !value) {
-          callback(new Error('Path is required for HTTP health check'))
+          callback(new Error(t('client.validate.healthPathRequired')))
         } else {
           callback()
         }

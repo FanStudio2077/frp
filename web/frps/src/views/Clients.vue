@@ -3,8 +3,8 @@
     <div class="page-header">
       <div class="header-top">
         <div class="title-section">
-          <h1 class="page-title">Clients</h1>
-          <p class="page-subtitle">Manage connected clients and their status</p>
+          <h1 class="page-title">{{ t('server.clients.title') }}</h1>
+          <p class="page-subtitle">{{ t('server.clients.subtitle') }}</p>
         </div>
         <div class="status-tabs">
           <button
@@ -26,7 +26,7 @@
       <div class="search-section">
         <el-input
           v-model="searchText"
-          placeholder="Search clients..."
+          :placeholder="t('server.clients.searchPlaceholder')"
           :prefix-icon="Search"
           clearable
           class="search-input"
@@ -43,7 +43,7 @@
         />
       </div>
       <div v-else-if="!loading" class="empty-state">
-        <el-empty description="No clients found" />
+        <el-empty :description="t('server.clients.empty')" />
       </div>
     </div>
 
@@ -63,6 +63,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElPagination } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { Client } from '../utils/client'
@@ -76,6 +77,7 @@ const statusFilter = ref<'all' | 'online' | 'offline'>('all')
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const { t } = useI18n()
 
 let refreshTimer: number | null = null
 let searchDebounceTimer: number | null = null
@@ -84,17 +86,17 @@ let requestSeq = 0
 const statusTabs = computed(() => [
   {
     value: 'all' as const,
-    label: 'All',
+    label: t('server.common.all'),
     count: statusFilter.value === 'all' ? total.value : null,
   },
   {
     value: 'online' as const,
-    label: 'Online',
+    label: t('server.common.online'),
     count: statusFilter.value === 'online' ? total.value : null,
   },
   {
     value: 'offline' as const,
-    label: 'Offline',
+    label: t('server.common.offline'),
     count: statusFilter.value === 'offline' ? total.value : null,
   },
 ])
@@ -126,7 +128,7 @@ const fetchData = async (silent = false) => {
     if (seq !== requestSeq) return
     ElMessage({
       showClose: true,
-      message: 'Failed to fetch clients: ' + error.message,
+      message: t('server.clients.fetchFailed') + error.message,
       type: 'error',
     })
   } finally {

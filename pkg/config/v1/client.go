@@ -15,6 +15,7 @@
 package v1
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/samber/lo"
@@ -46,6 +47,10 @@ type ClientCommonConfig struct {
 	// ServerPort specifies the port to connect to the server on. By default,
 	// this value is 7000.
 	ServerPort int `json:"serverPort,omitempty"`
+	// Servers specifies an optional list of servers for multi-server failover.
+	// When non-empty, frpc connects to the highest-priority enabled server and
+	// fails over to the next enabled server on connection or login failure.
+	Servers []ServerEndpoint `json:"servers,omitempty"`
 	// STUN server to help penetrate NAT hole.
 	NatHoleSTUNServer string `json:"natHoleStunServer,omitempty"`
 	// DNSServer specifies a DNS server address for FRPC to use. If this value
@@ -83,7 +88,44 @@ type ClientCommonConfig struct {
 	Store StoreConfig `json:"store,omitempty"`
 }
 
+// ServerConfig describes one server endpoint for frpc multi-server support.
+type ServerEndpoint struct {
+	Name       string `json:"name,omitempty"`
+	ServerAddr string `json:"serverAddr,omitempty"`
+	ServerPort int    `json:"serverPort,omitempty"`
+	Enabled    *bool  `json:"enabled,omitempty"`
+	Priority   int    `json:"priority,omitempty"`
+}
+
+// Complete fills defaults for one server entry.
+func (c *ServerEndpoint) Complete() {
+	c.ServerPort = util.EmptyOr(c.ServerPort, 7000)
+	if c.Enabled == nil {
+		c.Enabled = new(true)
+	}
+}
+
+// IsEnabled reports whether this server is enabled (default true).
+func (c *ServerEndpoint) IsEnabled() bool {
+	return c.Enabled == nil || *c.Enabled
+}
+
 func (c *ClientCommonConfig) Complete() error {
+	for i := range c.Servers {
+		if c.Servers[i].Name == "" {
+			c.Servers[i].Name = fmt.Sprintf("server-%d", i+1)
+		}
+		c.Servers[i].Complete()
+	}
+	if len(c.Servers) > 0 {
+		for _, sc := range c.Servers {
+			if sc.IsEnabled() && sc.ServerAddr != "" {
+				c.ServerAddr = sc.ServerAddr
+				c.ServerPort = sc.ServerPort
+				break
+			}
+		}
+	}
 	c.ServerAddr = util.EmptyOr(c.ServerAddr, "0.0.0.0")
 	c.ServerPort = util.EmptyOr(c.ServerPort, 7000)
 	c.LoginFailExit = util.EmptyOr(c.LoginFailExit, new(true))

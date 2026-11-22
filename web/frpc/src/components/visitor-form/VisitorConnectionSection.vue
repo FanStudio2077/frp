@@ -1,17 +1,17 @@
 <template>
-  <ConfigSection title="Connection" :readonly="readonly">
+  <ConfigSection :title="t('client.form.connection')" :readonly="readonly">
     <div class="field-row two-col">
-      <ConfigField label="Server Name" type="text" v-model="form.serverName" prop="serverName"
+      <ConfigField :label="t('client.form.serverName')" type="text" v-model="form.serverName" prop="serverName"
         placeholder="Name of the proxy to visit" :readonly="readonly" />
-      <ConfigField label="Server User" type="text" v-model="form.serverUser"
+      <ConfigField :label="t('client.form.serverUser')" type="text" v-model="form.serverUser"
         placeholder="Leave empty for same user" :readonly="readonly" />
     </div>
-    <ConfigField label="Secret Key" type="password" v-model="form.secretKey"
+    <ConfigField :label="t('client.form.secretKey')" type="password" v-model="form.secretKey"
       placeholder="Shared secret" :readonly="readonly" />
     <div class="field-row two-col">
-      <ConfigField label="Bind Address" type="text" v-model="form.bindAddr"
+      <ConfigField :label="t('client.form.bindAddress')" type="text" v-model="form.bindAddr"
         placeholder="127.0.0.1" :readonly="readonly" />
-      <ConfigField label="Bind Port" type="number" v-model="form.bindPort"
+      <ConfigField :label="t('client.form.bindPort')" type="number" v-model="form.bindPort"
         :min="bindPortMin" :max="65535" prop="bindPort" :readonly="readonly"
         :tip="bindPortTip" />
     </div>
@@ -19,6 +19,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import type { VisitorFormData } from '../../types'
 import ConfigSection from '../ConfigSection.vue'
@@ -40,6 +41,8 @@ const bindPortMin = computed(() => (form.value.type === 'sudp' ? 1 : undefined))
 const bindPortTip = computed(() => form.value.type === 'sudp'
   ? ''
   : 'Use -1 to skip the local listener when connections come from another visitor or plugin.')
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

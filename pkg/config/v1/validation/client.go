@@ -41,6 +41,7 @@ func (v *ConfigValidator) ValidateClientCommonConfig(c *v1.ClientCommonConfig) (
 		func() (Warning, error) { return nil, validateMetricsServerConfig(&c.MetricsServer, &c.WebServer) },
 		func() (Warning, error) { return validateTransportConfig(&c.Transport) },
 		func() (Warning, error) { return validateIncludeFiles(c.IncludeConfigFiles) },
+		func() (Warning, error) { return validateServers(c) },
 	}
 
 	for _, validator := range validators {
@@ -49,6 +50,37 @@ func (v *ConfigValidator) ValidateClientCommonConfig(c *v1.ClientCommonConfig) (
 		errs = AppendError(errs, err)
 	}
 	return warnings, errs
+}
+
+func validateServers(c *v1.ClientCommonConfig) (Warning, error) {
+	if len(c.Servers) == 0 {
+		return nil, nil
+	}
+	var errs error
+	seen := make(map[string]struct{}, len(c.Servers))
+	enabled := 0
+	for i, s := range c.Servers {
+		if s.Name == "" {
+			errs = AppendError(errs, fmt.Errorf("servers[%d].name is required", i))
+		} else if _, ok := seen[s.Name]; ok {
+			errs = AppendError(errs, fmt.Errorf("duplicate server name %q", s.Name))
+		} else {
+			seen[s.Name] = struct{}{}
+		}
+		if s.ServerAddr == "" {
+			errs = AppendError(errs, fmt.Errorf("servers[%d].serverAddr is required", i))
+		}
+		if s.ServerPort < 1 || s.ServerPort > 65535 {
+			errs = AppendError(errs, fmt.Errorf("servers[%d].serverPort must be between 1 and 65535", i))
+		}
+		if s.IsEnabled() {
+			enabled++
+		}
+	}
+	if enabled == 0 {
+		errs = AppendError(errs, fmt.Errorf("at least one server must be enabled"))
+	}
+	return nil, errs
 }
 
 func validateFeatureGates(c *v1.ClientCommonConfig) (Warning, error) {

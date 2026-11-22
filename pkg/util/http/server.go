@@ -43,12 +43,13 @@ type Server struct {
 	hs     *http.Server
 
 	authMiddleware mux.MiddlewareFunc
+	auth           *netpkg.HTTPAuthMiddleware
 }
 
 func NewServer(cfg v1.WebServerConfig) (*Server, error) {
 	assets.Load(cfg.AssetsDir)
 
-	s, err := newServer(cfg.Addr, cfg.Port, cfg.User, cfg.Password, cfg.TLS)
+	s, err := newServer(cfg.Addr, cfg.Port, cfg.User, cfg.Password, cfg.TLS, cfg.Users)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func NewServer(cfg v1.WebServerConfig) (*Server, error) {
 	return s, nil
 }
 
-func newServer(bindAddr string, port int, user, password string, tlsConfig *v1.TLSConfig) (*Server, error) {
+func newServer(bindAddr string, port int, user, password string, tlsConfig *v1.TLSConfig, users []v1.WebUser) (*Server, error) {
 	addr := net.JoinHostPort(bindAddr, strconv.Itoa(port))
 	if addr == ":" {
 		addr = ":http"
@@ -85,7 +86,17 @@ func newServer(bindAddr string, port int, user, password string, tlsConfig *v1.T
 			Certificates: []tls.Certificate{cert},
 		}
 	}
-	s.authMiddleware = netpkg.NewHTTPAuthMiddleware(user, password).SetAuthFailDelay(200 * time.Millisecond).Middleware
+	um := make(map[string]string, len(users))
+	rm := make(map[string]string, len(users))
+	for _, u := range users {
+		if u.User == "" {
+			continue
+		}
+		um[u.User] = u.Password
+		rm[u.User] = u.Role
+	}
+	s.auth = netpkg.NewHTTPAuthMiddleware(user, password).SetAuthFailDelay(200 * time.Millisecond).SetUsers(um, rm)
+	s.authMiddleware = s.auth.Middleware
 
 	// Bind only after all fallible preparation so an error cannot leak the listener.
 	ln, err := net.Listen("tcp", addr)
@@ -94,6 +105,24 @@ func newServer(bindAddr string, port int, user, password string, tlsConfig *v1.T
 	}
 	s.ln = ln
 	return s, nil
+}
+
+
+// SetUsers replaces the dashboard user list at runtime.
+func (s *Server) SetUsers(users []v1.WebUser) {
+	if s.auth == nil {
+		return
+	}
+	um := make(map[string]string, len(users))
+	rm := make(map[string]string, len(users))
+	for _, u := range users {
+		if u.User == "" {
+			continue
+		}
+		um[u.User] = u.Password
+		rm[u.User] = u.Role
+	}
+	s.auth.SetUsers(um, rm)
 }
 
 func (s *Server) Address() string {

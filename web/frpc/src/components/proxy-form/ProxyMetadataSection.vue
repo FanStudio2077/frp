@@ -1,11 +1,12 @@
 <template>
-  <ConfigSection title="Metadata" collapsible :readonly="readonly" :has-value="form.metadatas.length > 0 || form.annotations.length > 0">
-    <ConfigField label="Metadatas" type="kv" v-model="form.metadatas" :readonly="readonly" />
-    <ConfigField label="Annotations" type="kv" v-model="form.annotations" :readonly="readonly" />
+  <ConfigSection :title="t('client.form.metadata')" collapsible :readonly="readonly" :has-value="form.metadatas.length > 0 || form.annotations.length > 0">
+    <ConfigField :label="t('client.form.metadatas')" type="kv" v-model="form.metadatas" :readonly="readonly" />
+    <ConfigField :label="t('client.form.annotations')" type="kv" v-model="form.annotations" :readonly="readonly" />
   </ConfigSection>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import type { ProxyFormData } from '../../types'
 import ConfigSection from '../ConfigSection.vue'
@@ -22,6 +23,8 @@ const form = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

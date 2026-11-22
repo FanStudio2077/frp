@@ -5,7 +5,7 @@
       <a class="breadcrumb-link" @click="goBack">
         <el-icon><ArrowLeft /></el-icon>
       </a>
-      <router-link to="/clients" class="breadcrumb-item">Clients</router-link>
+      <router-link to="/clients" class="breadcrumb-item">{{ t('server.nav.clients') }}</router-link>
       <span class="breadcrumb-separator">/</span>
       <span class="breadcrumb-current">{{
         client?.displayName || route.params.key
@@ -42,11 +42,19 @@
               </div>
             </div>
             <div class="header-right">
+              <el-button
+                v-if="client.online"
+                type="danger"
+                size="small"
+                @click="handleDisconnect"
+              >
+                {{ t('server.clientDetail.disconnect') }}
+              </el-button>
               <span
                 class="status-badge"
                 :class="client.online ? 'online' : 'offline'"
               >
-                {{ client.online ? 'Online' : 'Offline' }}
+                {{ client.online ? t('server.common.online') : t('server.common.offline') }}
               </span>
             </div>
           </div>
@@ -54,24 +62,24 @@
           <!-- Info Section -->
           <div class="info-section">
             <div class="info-item">
-              <span class="info-label">Connections</span>
+              <span class="info-label">{{ t('server.clientDetail.connections') }}</span>
               <span class="info-value">{{ client.status.curConns }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Run ID</span>
+              <span class="info-label">{{ t('server.clientDetail.runId') }}</span>
               <span class="info-value">{{ client.runID }}</span>
             </div>
             <div v-if="client.wireProtocol" class="info-item">
-              <span class="info-label">Protocol</span>
+              <span class="info-label">{{ t('server.clientDetail.protocol') }}</span>
               <span class="info-value">{{ client.wireProtocol }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label">First Connected</span>
+              <span class="info-label">{{ t('server.clientDetail.firstConnected') }}</span>
               <span class="info-value">{{ client.firstConnectedAgo }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">{{
-                client.online ? 'Connected' : 'Disconnected'
+                client.online ? t('server.clientDetail.connected') : t('server.clientDetail.disconnected')
               }}</span>
               <span class="info-value">{{
                 client.online ? client.lastConnectedAgo : client.disconnectedAgo
@@ -84,12 +92,12 @@
         <div class="proxies-card">
           <div class="proxies-header">
             <div class="proxies-title">
-              <h2>Proxies</h2>
+              <h2>{{ t('server.clientDetail.proxies') }}</h2>
               <span class="proxies-count">{{ total }}</span>
             </div>
             <el-input
               v-model="proxySearch"
-              placeholder="Search proxies..."
+              :placeholder="t('server.clientDetail.searchPlaceholder')"
               :prefix-icon="Search"
               clearable
               class="proxy-search"
@@ -98,7 +106,7 @@
           <div class="proxies-body">
             <div v-if="proxiesLoading" class="loading-state">
               <el-icon class="is-loading"><Loading /></el-icon>
-              <span>Loading...</span>
+              <span>{{ t('common.loading') }}</span>
             </div>
             <div v-else-if="proxies.length > 0" class="proxies-list">
               <ProxyCard
@@ -109,10 +117,10 @@
               />
             </div>
             <div v-else-if="proxySearch.trim()" class="empty-state">
-              <p>No proxies match "{{ proxySearch }}"</p>
+              <p>{{ t('server.clientDetail.noProxyMatch', { q: proxySearch }) }}</p>
             </div>
             <div v-else class="empty-state">
-              <p>No proxies found</p>
+              <p>{{ t('server.clientDetail.noProxies') }}</p>
             </div>
           </div>
           <div v-if="total > 0" class="pagination-section">
@@ -130,10 +138,10 @@
       </template>
 
       <div v-else-if="!loading" class="not-found">
-        <h2>Client not found</h2>
-        <p>The client doesn't exist or has been removed.</p>
+        <h2>{{ t('server.clientDetail.notFoundTitle') }}</h2>
+        <p>{{ t('server.clientDetail.notFoundDesc') }}</p>
         <router-link to="/clients">
-          <el-button type="primary">Back to Clients</el-button>
+          <el-button type="primary">{{ t('server.clientDetail.backToClients') }}</el-button>
         </router-link>
       </div>
     </div>
@@ -142,11 +150,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElPagination } from 'element-plus'
+import { ElMessage, ElMessageBox, ElPagination } from 'element-plus'
 import { ArrowLeft, Loading, Search } from '@element-plus/icons-vue'
 import { Client } from '../utils/client'
-import { getClientV2 } from '../api/client'
+import { getClientV2, disconnectClient } from '../api/client'
 import { getProxiesV2 } from '../api/proxy'
 import {
   BaseProxy,
@@ -165,6 +174,7 @@ import type { ServerInfo } from '../types/server'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const client = ref<Client | null>(null)
 const loading = ref(true)
 
@@ -196,6 +206,25 @@ const fetchServerInfo = (): Promise<ServerInfo> => {
   return serverInfoPromise
 }
 
+const handleDisconnect = async () => {
+  if (!client.value) return
+  try {
+    await ElMessageBox.confirm(
+      t('server.clientDetail.disconnectConfirm'),
+      t('server.clientDetail.disconnect'),
+      { type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    await disconnectClient(client.value.key)
+    ElMessage.success(t('server.clientDetail.disconnectDone'))
+  } catch (e: any) {
+    ElMessage.error(String(e?.message || e))
+  }
+}
+
 const fetchClient = async (): Promise<boolean> => {
   const key = route.params.key as string
   if (!key) {
@@ -207,7 +236,7 @@ const fetchClient = async (): Promise<boolean> => {
     client.value = new Client(data)
     return true
   } catch (error: any) {
-    ElMessage.error('Failed to fetch client: ' + error.message)
+    ElMessage.error(t('server.clientDetail.fetchClientFailed') + error.message)
     return false
   } finally {
     loading.value = false
@@ -306,7 +335,7 @@ const fetchProxies = async () => {
     pageSize.value = data.pageSize
   } catch (error: any) {
     if (seq !== requestSeq) return
-    ElMessage.error('Failed to fetch proxies: ' + error.message)
+    ElMessage.error(t('server.clientDetail.fetchProxiesFailed') + error.message)
   } finally {
     if (seq === requestSeq) {
       proxiesLoading.value = false

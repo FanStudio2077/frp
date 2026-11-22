@@ -41,16 +41,17 @@
 
     <!-- Legend -->
     <div v-if="!loading && chartData.length > 0" class="legend">
-      <div class="legend-item"><span class="dot in"></span> Traffic In</div>
-      <div class="legend-item"><span class="dot out"></span> Traffic Out</div>
+      <div class="legend-item"><span class="dot in"></span> {{ t('server.traffic.trafficIn') }}</div>
+      <div class="legend-item"><span class="dot out"></span> {{ t('server.traffic.trafficOut') }}</div>
     </div>
 
-    <el-empty v-else-if="!loading" description="No traffic data" />
+    <el-empty v-else-if="!loading" :description="t('server.traffic.noData')" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { formatFileSize } from '../utils/format'
 import { getProxyTraffic } from '../api/proxy'
@@ -59,6 +60,8 @@ import type { TrafficResponse } from '../types/proxy'
 const props = defineProps<{
   proxyName: string
 }>()
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const chartData = ref<

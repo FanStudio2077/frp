@@ -29,19 +29,19 @@
             </template>
             <PopoverMenuItem v-if="proxy.status === 'disabled'" @click="$emit('toggle', proxy, true)">
               <el-icon><Open /></el-icon>
-              Enable
+              {{ t('common.enable') }}
             </PopoverMenuItem>
             <PopoverMenuItem v-else @click="$emit('toggle', proxy, false)">
               <el-icon><TurnOff /></el-icon>
-              Disable
+              {{ t('common.disable') }}
             </PopoverMenuItem>
             <PopoverMenuItem @click="$emit('edit', proxy)">
               <el-icon><Edit /></el-icon>
-              Edit
+              {{ t('common.edit') }}
             </PopoverMenuItem>
             <PopoverMenuItem danger @click="$emit('delete', proxy)">
               <el-icon><Delete /></el-icon>
-              Delete
+              {{ t('common.delete') }}
             </PopoverMenuItem>
           </PopoverMenu>
         </div>
@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { MoreFilled, Edit, Delete, Open, TurnOff } from '@element-plus/icons-vue'
 import ActionButton from '@shared/components/ActionButton.vue'
 import PopoverMenu from '@shared/components/PopoverMenu.vue'
@@ -99,6 +100,8 @@ const statusClass = computed(() => {
       return 'waiting'
   }
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

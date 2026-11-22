@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ClientConfigure from '../views/ClientConfigure.vue'
+import Servers from '../views/Servers.vue'
 import ProxyDetail from '../views/ProxyDetail.vue'
 import ProxyEdit from '../views/ProxyEdit.vue'
 import ProxyList from '../views/ProxyList.vue'
@@ -59,6 +60,11 @@ const router = createRouter({
       name: 'VisitorEdit',
       component: VisitorEdit,
       meta: { requiresStore: true },
+    },
+    {
+      path: '/servers',
+      name: 'Servers',
+      component: Servers,
     },
     {
       path: '/config',

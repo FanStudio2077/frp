@@ -58,6 +58,9 @@ type WebServerConfig struct {
 	User string `json:"user,omitempty"`
 	// Password specifies the password that the admin server will use for login.
 	Password string `json:"password,omitempty"`
+	// Users specifies additional dashboard users with roles ("admin" or "viewer").
+	// The legacy User/Password above is treated as an "admin" user.
+	Users []WebUser `json:"users,omitempty"`
 	// AssetsDir specifies the local directory that the admin server will load
 	// resources from. If this value is "", assets will be loaded from the
 	// bundled executable using embed package.
@@ -68,8 +71,19 @@ type WebServerConfig struct {
 	TLS *TLSConfig `json:"tls,omitempty"`
 }
 
+type WebUser struct {
+	User     string `json:"user,omitempty"`
+	Password string `json:"password,omitempty"`
+	Role     string `json:"role,omitempty"`
+}
+
 func (c *WebServerConfig) Complete() {
 	c.Addr = util.EmptyOr(c.Addr, "127.0.0.1")
+	for i := range c.Users {
+		if c.Users[i].Role == "" {
+			c.Users[i].Role = "viewer"
+		}
+	}
 }
 
 // MetricsServerConfig configures a separate listener for health checks, metrics

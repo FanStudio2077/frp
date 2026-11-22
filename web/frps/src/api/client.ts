@@ -28,3 +28,8 @@ export const getClient = (key: string) => {
 export const getClientV2 = (key: string) => {
   return http.getV2<ClientInfoData>(`../api/v2/clients/${encodeURIComponent(key)}`)
 }
+export const disconnectClient = (key: string) => {
+  return http.postV2<void>(
+    `../api/v2/clients/${encodeURIComponent(key)}/disconnect`,
+  )
+}

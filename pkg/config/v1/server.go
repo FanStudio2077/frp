@@ -71,6 +71,8 @@ type ServerConfig struct {
 
 	WebServer     WebServerConfig     `json:"webServer,omitempty"`
 	MetricsServer MetricsServerConfig `json:"metricsServer,omitempty"`
+	// Alerts configures runtime monitoring thresholds (hot-reloadable).
+	Alerts AlertConfig `json:"alerts,omitempty"`
 	// EnablePrometheus will export prometheus metrics on webserver address
 	// in /metrics api.
 	EnablePrometheus bool `json:"enablePrometheus,omitempty"`

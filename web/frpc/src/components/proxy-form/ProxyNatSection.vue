@@ -1,11 +1,12 @@
 <template>
-  <ConfigSection title="NAT Traversal" collapsible :readonly="readonly" :has-value="form.natTraversalDisableAssistedAddrs">
-    <ConfigField label="Disable Assisted Addresses" type="switch" v-model="form.natTraversalDisableAssistedAddrs"
+  <ConfigSection :title="t('client.form.nATTraversal')" collapsible :readonly="readonly" :has-value="form.natTraversalDisableAssistedAddrs">
+    <ConfigField :label="t('client.form.disableAssistedAddresses')" type="switch" v-model="form.natTraversalDisableAssistedAddrs"
       tip="Only use STUN-discovered public addresses" :readonly="readonly" />
   </ConfigSection>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import type { ProxyFormData } from '../../types'
 import ConfigSection from '../ConfigSection.vue'
@@ -22,6 +23,8 @@ const form = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

@@ -116,3 +116,9 @@ export const clearOfflineProxies = () => {
     '../api/v2/system/prune?type=offline_proxies',
   )
 }
+export const deleteProxies = (names: string[]) => {
+  return http.delete<{ deleted: number }>('../api/v2/proxies', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ names }),
+  })
+}

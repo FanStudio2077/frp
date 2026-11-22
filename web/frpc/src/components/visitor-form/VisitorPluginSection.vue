@@ -1,8 +1,8 @@
 <template>
-  <ConfigSection title="Plugin" :readonly="readonly">
+  <ConfigSection :title="t('client.form.plugin')" :readonly="readonly">
     <div class="field-row two-col">
       <ConfigField
-        label="Plugin Type"
+        :label="t('client.form.pluginType')"
         type="select"
         v-model="form.pluginType"
         :options="pluginOptions"
@@ -11,7 +11,7 @@
       />
       <ConfigField
         v-if="form.pluginType === 'virtual_net'"
-        label="Destination IP"
+        :label="t('client.form.destinationIP')"
         type="text"
         v-model="form.pluginDestinationIP"
         prop="pluginDestinationIP"
@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import type { VisitorFormData } from '../../types'
 import ConfigField from '../ConfigField.vue'
@@ -45,6 +46,8 @@ const form = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

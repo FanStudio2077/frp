@@ -1,22 +1,23 @@
 <template>
-  <ConfigSection title="Authentication" :readonly="readonly">
+  <ConfigSection :title="t('client.form.authentication')" :readonly="readonly">
     <template v-if="['http', 'tcpmux'].includes(form.type)">
       <div class="field-row three-col">
-        <ConfigField label="HTTP User" type="text" v-model="form.httpUser" :readonly="readonly" />
-        <ConfigField label="HTTP Password" type="password" v-model="form.httpPassword" :readonly="readonly" />
-        <ConfigField label="Route By HTTP User" type="text" v-model="form.routeByHTTPUser" :readonly="readonly" />
+        <ConfigField :label="t('client.form.hTTPUser')" type="text" v-model="form.httpUser" :readonly="readonly" />
+        <ConfigField :label="t('client.form.hTTPPassword')" type="password" v-model="form.httpPassword" :readonly="readonly" />
+        <ConfigField :label="t('client.form.routeByHTTPUser')" type="text" v-model="form.routeByHTTPUser" :readonly="readonly" />
       </div>
     </template>
     <template v-if="['stcp', 'sudp', 'xtcp'].includes(form.type)">
       <div class="field-row two-col">
-        <ConfigField label="Secret Key" type="password" v-model="form.secretKey" prop="secretKey" :readonly="readonly" />
-        <ConfigField label="Allow Users" type="tags" v-model="form.allowUsers" placeholder="username" :readonly="readonly" />
+        <ConfigField :label="t('client.form.secretKey')" type="password" v-model="form.secretKey" prop="secretKey" :readonly="readonly" />
+        <ConfigField :label="t('client.form.allowUsers')" type="tags" v-model="form.allowUsers" placeholder="username" :readonly="readonly" />
       </div>
     </template>
   </ConfigSection>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import type { ProxyFormData } from '../../types'
 import ConfigSection from '../ConfigSection.vue'
@@ -33,6 +34,8 @@ const form = computed({
   get: () => props.modelValue,
   set: (val) => emit('update:modelValue', val),
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

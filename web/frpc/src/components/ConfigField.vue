@@ -37,7 +37,7 @@
       selectable
       full-width
       filterable
-      :filter-placeholder="placeholder || 'Select...'"
+      :filter-placeholder="placeholder || t('common.select')"
       @update:model-value="$emit('update:modelValue', $event)"
     >
       <template #default="{ filterText }">
@@ -112,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { computed, ref, watch } from 'vue'
 import KeyValueEditor from './KeyValueEditor.vue'
 import StringListEditor from './StringListEditor.vue'
@@ -220,6 +221,8 @@ const displayValue = computed(() => {
   }
   return String(props.modelValue)
 })
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

@@ -43,13 +43,14 @@
             fill="currentColor"
           />
         </svg>
-        Add
+        {{ t('common.add') }}
       </button>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 interface KVEntry {
   key: string
   value: string
@@ -86,6 +87,8 @@ const removeEntry = (index: number) => {
   const updated = props.modelValue.filter((_, i) => i !== index)
   emit('update:modelValue', updated)
 }
+
+const { t } = useI18n()
 </script>
 
 <style scoped>

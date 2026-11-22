@@ -3,17 +3,27 @@
     <div class="page-header">
       <div class="header-top">
         <div class="title-section">
-          <h1 class="page-title">Proxies</h1>
-          <p class="page-subtitle">View and manage all proxy configurations</p>
+          <h1 class="page-title">{{ t('server.proxies.title') }}</h1>
+          <p class="page-subtitle">{{ t('server.proxies.subtitle') }}</p>
         </div>
 
         <div class="actions-section">
+          <ActionButton
+            variant="outline"
+            size="small"
+            danger
+            :disabled="selected.length === 0"
+            @click="showBatchDelete = true"
+          >
+            {{ t('server.proxies.deleteSelected') }} ({{ selected.length }})
+          </ActionButton>
+
           <ActionButton variant="outline" size="small" @click="refreshData">
-            Refresh
+            {{ t('server.common.refresh') }}
           </ActionButton>
 
           <ActionButton variant="outline" size="small" danger @click="showClearDialog = true">
-            Clear Offline
+            {{ t('server.proxies.clearOffline') }}
           </ActionButton>
         </div>
       </div>
@@ -22,7 +32,7 @@
         <div class="search-row">
           <el-input
             v-model="searchText"
-            placeholder="Search proxies..."
+            :placeholder="t('server.proxies.searchPlaceholder')"
             :prefix-icon="Search"
             clearable
             class="main-search"
@@ -31,13 +41,13 @@
 
         <div class="type-tabs">
           <button
-            v-for="t in proxyTypes"
-            :key="t.value"
+            v-for="ptype in proxyTypes"
+            :key="ptype.value"
             class="type-tab"
-            :class="{ active: activeType === t.value }"
-            @click="activeType = t.value"
+            :class="{ active: activeType === ptype.value }"
+            @click="activeType = ptype.value"
           >
-            {{ t.label }}
+            {{ ptype.label }}
           </button>
         </div>
       </div>
@@ -45,15 +55,20 @@
 
     <div v-loading="loading" class="proxies-content">
       <div v-if="proxies.length > 0" class="proxies-list">
-        <ProxyCard
+        <div
           v-for="proxy in proxies"
           :key="`${proxy.type}:${proxy.name}`"
-          :proxy="proxy"
-          :show-type="activeType === 'all'"
-        />
+          class="proxy-select-row"
+        >
+          <el-checkbox
+            :model-value="selected.includes(proxy.name)"
+            @change="toggleSelect(proxy.name)"
+          />
+          <ProxyCard :proxy="proxy" :show-type="activeType === 'all'" />
+        </div>
       </div>
       <div v-else-if="!loading" class="empty-state">
-        <el-empty description="No proxies found" />
+        <el-empty :description="t('server.proxies.empty')" />
       </div>
     </div>
 
@@ -70,10 +85,19 @@
     </div>
 
     <ConfirmDialog
+      v-model="showBatchDelete"
+      :title="t('server.proxies.deleteSelected')"
+      :message="t('server.proxies.deleteConfirm', { count: selected.length })"
+      :confirm-text="t('server.proxies.deleteOk')"
+      danger
+      @confirm="doBatchDelete"
+    />
+
+    <ConfirmDialog
       v-model="showClearDialog"
-      title="Clear Offline"
-      message="Are you sure you want to clear all offline proxies?"
-      confirm-text="Clear"
+      :title="t('server.proxies.clearTitle')"
+      :message="t('server.proxies.clearMessage')"
+      :confirm-text="t('server.proxies.clearOk')"
       danger
       @confirm="handleClearConfirm"
     />
@@ -82,6 +106,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElPagination } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
@@ -101,6 +126,7 @@ import ProxyCard from '../components/ProxyCard.vue'
 import {
   getProxiesV2,
   clearOfflineProxies as apiClearOfflineProxies,
+  deleteProxies,
 } from '../api/proxy'
 import { getServerInfo } from '../api/server'
 import type { ProxyStatsInfo } from '../types/proxy'
@@ -108,9 +134,10 @@ import type { ServerInfo } from '../types/server'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 
 const proxyTypes = [
-  { label: 'All', value: 'all' },
+  { label: t('server.common.all'), value: 'all' },
   { label: 'TCP', value: 'tcp' },
   { label: 'UDP', value: 'udp' },
   { label: 'HTTP', value: 'http' },
@@ -126,6 +153,8 @@ const proxies = ref<BaseProxy[]>([])
 const loading = ref(false)
 const searchText = ref('')
 const showClearDialog = ref(false)
+const showBatchDelete = ref(false)
+const selected = ref<string[]>([])
 const page = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
@@ -276,6 +305,24 @@ const onPageChange = (value: number) => {
 const onPageSizeChange = (value: number) => {
   pageSize.value = value
   resetPageAndFetch()
+}
+
+const toggleSelect = (name: string) => {
+  const i = selected.value.indexOf(name)
+  if (i >= 0) selected.value.splice(i, 1)
+  else selected.value.push(name)
+}
+
+const doBatchDelete = async () => {
+  try {
+    await deleteProxies(selected.value)
+    ElMessage.success(t('server.proxies.deleted'))
+    selected.value = []
+    showBatchDelete.value = false
+    refreshData()
+  } catch (e: any) {
+    ElMessage.error(t('server.proxies.deleteFailed') + (e?.message || ''))
+  }
 }
 
 const handleClearConfirm = async () => {

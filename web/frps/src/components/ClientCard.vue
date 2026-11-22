@@ -39,7 +39,7 @@
 
     <div class="card-action">
       <div class="status-badge" :class="client.online ? 'online' : 'offline'">
-        {{ client.online ? 'Online' : 'Offline' }}
+        {{ client.online ? t('server.common.online') : t('server.common.offline') }}
       </div>
       <el-icon class="arrow-icon"><ArrowRight /></el-icon>
     </div>
@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { DataLine, ArrowRight } from '@element-plus/icons-vue'
 import type { Client } from '../utils/client'
 
@@ -57,6 +58,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const router = useRouter()
+const { t } = useI18n()
 
 const viewDetail = () => {
   router.push({

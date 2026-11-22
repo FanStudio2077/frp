@@ -1,22 +1,27 @@
+function currentLang(): string {
+  if (typeof document !== 'undefined' && document.documentElement.lang) {
+    return document.documentElement.lang
+  }
+  return 'zh-CN'
+}
+
 export function formatDistanceToNow(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000)
-
-  let interval = seconds / 31536000
-  if (interval > 1) return Math.floor(interval) + ' years ago'
-
-  interval = seconds / 2592000
-  if (interval > 1) return Math.floor(interval) + ' months ago'
-
-  interval = seconds / 86400
-  if (interval > 1) return Math.floor(interval) + ' days ago'
-
-  interval = seconds / 3600
-  if (interval > 1) return Math.floor(interval) + ' hours ago'
-
-  interval = seconds / 60
-  if (interval > 1) return Math.floor(interval) + ' minutes ago'
-
-  return Math.floor(seconds) + ' seconds ago'
+  const rtf = new Intl.RelativeTimeFormat(currentLang(), { numeric: 'auto' })
+  const units: Array<['year' | 'month' | 'day' | 'hour' | 'minute' | 'second', number]> = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+    ['second', 1],
+  ]
+  for (const [unit, secs] of units) {
+    if (seconds >= secs) {
+      return rtf.format(-Math.floor(seconds / secs), unit)
+    }
+  }
+  return rtf.format(0, 'second')
 }
 
 export function formatUnixSeconds(seconds?: number): string {
@@ -33,7 +38,6 @@ export function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  // Prevent index out of bounds for extremely large numbers
   const unit = sizes[i] || sizes[sizes.length - 1]
   const val = bytes / Math.pow(k, i)
 

@@ -10,7 +10,7 @@
         <h3 class="section-title">{{ title }}</h3>
         <div class="section-header-right">
           <span v-if="readonly && !hasValue" class="not-configured-badge">
-            Not configured
+            {{ t('common.notConfigured') }}
           </span>
           <el-icon v-if="canToggle" class="collapse-arrow" :class="{ expanded }">
             <ArrowDown />
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
 
 const props = withDefaults(
@@ -84,6 +85,8 @@ const handleToggle = () => {
     expanded.value = !expanded.value
   }
 }
+
+const { t } = useI18n()
 </script>
 
 <style scoped lang="scss">

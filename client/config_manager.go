@@ -68,6 +68,8 @@ func (m *serviceConfigManager) ReloadFromFile(strict bool) error {
 		reloadPlugins()
 	}
 
+	m.svr.reloadServers(result.Common.Servers)
+
 	log.Infof("success reload conf")
 	return nil
 }

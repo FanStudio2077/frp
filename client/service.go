@@ -21,11 +21,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/fatedier/golib/crypto"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/samber/lo"
 
 	"github.com/fatedier/frp/client/proxy"
@@ -163,6 +165,12 @@ type Service struct {
 
 	connectorCreator func(context.Context, *v1.ClientCommonConfig) Connector
 	handleWorkConnCb func(*v1.ProxyBaseConfig, net.Conn, *msg.StartWorkConn) bool
+
+	// multi-server failover state
+	serverMu     sync.RWMutex
+	servers      []serverEntry
+	serverIdx    int
+	activeServer string
 }
 
 func NewService(options ServiceOptions) (*Service, error) {
@@ -234,6 +242,8 @@ func NewService(options ServiceOptions) (*Service, error) {
 		connectorCreator: options.ConnectorCreator,
 		handleWorkConnCb: options.HandleWorkConnCb,
 	}
+
+	s.initServers()
 
 	if webServer != nil {
 		webServer.RouteRegister(s.registerRouteHandlers)
@@ -366,6 +376,7 @@ func (svr *Service) loopLoginUntilSuccess(maxInterval time.Duration, firstLoginE
 	xl := xlog.FromContextSafe(svr.ctx)
 
 	loginFunc := func() (bool, error) {
+		svr.pickServer()
 		xl.Infof("try to connect to server...")
 		dialer := &controlSessionDialer{
 			ctx:              svr.ctx,
@@ -618,4 +629,154 @@ func (svr *Service) reloadConfigFromSourcesLocked() error {
 		return err
 	}
 	return nil
+}
+
+type serverEntry struct {
+	Name       string
+	ServerAddr string
+	ServerPort int
+	Enabled    bool
+	Priority   int
+}
+
+// ServerState is the API view of a configured server.
+type ServerState struct {
+	Name       string `json:"name"`
+	ServerAddr string `json:"serverAddr"`
+	ServerPort int    `json:"serverPort"`
+	Enabled    bool   `json:"enabled"`
+	Priority   int    `json:"priority"`
+	Active     bool   `json:"active"`
+}
+
+func buildServerEntries(list []v1.ServerEndpoint, fallbackAddr string, fallbackPort int) []serverEntry {
+	entries := make([]serverEntry, 0, len(list))
+	if len(list) > 0 {
+		for _, sc := range list {
+			entries = append(entries, serverEntry{
+				Name: sc.Name, ServerAddr: sc.ServerAddr, ServerPort: sc.ServerPort,
+				Enabled: sc.IsEnabled(), Priority: sc.Priority,
+			})
+		}
+		sort.SliceStable(entries, func(i, j int) bool { return entries[i].Priority < entries[j].Priority })
+	} else {
+		entries = append(entries, serverEntry{Name: "default", ServerAddr: fallbackAddr, ServerPort: fallbackPort, Enabled: true})
+	}
+	return entries
+}
+
+func (svr *Service) initServers() {
+	list := svr.common.Servers
+	svr.serverMu.Lock()
+	svr.servers = buildServerEntries(list, svr.common.ServerAddr, svr.common.ServerPort)
+	if len(svr.servers) > 0 && svr.servers[0].Enabled {
+		svr.activeServer = svr.servers[0].Name
+	}
+	svr.serverMu.Unlock()
+	if len(list) > 0 {
+		svr.pickServer()
+	}
+}
+
+func (svr *Service) reloadServers(list []v1.ServerEndpoint) {
+	svr.serverMu.Lock()
+	svr.servers = buildServerEntries(list, svr.common.ServerAddr, svr.common.ServerPort)
+	svr.serverIdx = 0
+	svr.serverMu.Unlock()
+}
+
+func (svr *Service) pickServer() {
+	svr.serverMu.Lock()
+	defer svr.serverMu.Unlock()
+	if len(svr.servers) == 0 {
+		return
+	}
+	for i := 0; i < len(svr.servers); i++ {
+		e := svr.servers[svr.serverIdx%len(svr.servers)]
+		svr.serverIdx++
+		if !e.Enabled || e.ServerAddr == "" {
+			continue
+		}
+		svr.common.ServerAddr = e.ServerAddr
+		svr.common.ServerPort = e.ServerPort
+		svr.activeServer = e.Name
+		return
+	}
+}
+
+// ServerStates returns the configured servers and which one is active.
+func (svr *Service) ServerStates() []ServerState {
+	svr.serverMu.RLock()
+	defer svr.serverMu.RUnlock()
+	out := make([]ServerState, 0, len(svr.servers))
+	for _, e := range svr.servers {
+		out = append(out, ServerState{
+			Name: e.Name, ServerAddr: e.ServerAddr, ServerPort: e.ServerPort,
+			Enabled: e.Enabled, Priority: e.Priority, Active: e.Name == svr.activeServer,
+		})
+	}
+	return out
+}
+
+// ActiveServer returns the name of the currently active server.
+func (svr *Service) ActiveServer() string {
+	svr.serverMu.RLock()
+	defer svr.serverMu.RUnlock()
+	return svr.activeServer
+}
+
+// ActivateServer switches to the named server and triggers a reconnect.
+func (svr *Service) ActivateServer(name string) error {
+	svr.serverMu.Lock()
+	idx := -1
+	for i, e := range svr.servers {
+		if e.Name == name {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		svr.serverMu.Unlock()
+		return fmt.Errorf("server %q not found", name)
+	}
+	svr.serverIdx = idx
+	svr.serverMu.Unlock()
+	svr.ctlMu.RLock()
+	ctl := svr.ctl
+	svr.ctlMu.RUnlock()
+	if ctl != nil {
+		ctl.Close()
+	}
+	return nil
+}
+
+// UpdateServers replaces the servers list in the config file and reloads.
+func (svr *Service) UpdateServers(servers []v1.ServerEndpoint) error {
+	if svr.configFilePath == "" {
+		return fmt.Errorf("frpc has no config file path")
+	}
+	data, err := os.ReadFile(svr.configFilePath)
+	if err != nil {
+		return err
+	}
+	var root map[string]any
+	if err := toml.Unmarshal(data, &root); err != nil {
+		return err
+	}
+	arr := make([]map[string]any, 0, len(servers))
+	for _, s := range servers {
+		m := map[string]any{"name": s.Name, "serverAddr": s.ServerAddr, "serverPort": s.ServerPort, "priority": s.Priority}
+		m["enabled"] = s.IsEnabled()
+		arr = append(arr, m)
+	}
+	root["servers"] = arr
+	out, err := toml.Marshal(root)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(svr.configFilePath, out, 0o644); err != nil {
+		return err
+	}
+	mgr := newServiceConfigManager(svr)
+	return mgr.ReloadFromFile(false)
 }

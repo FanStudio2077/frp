@@ -11,15 +11,15 @@
 
         <div class="card-meta">
           <span v-if="proxy.port" class="meta-item">
-            <span class="meta-label">Port:</span>
+            <span class="meta-label">{{ t('server.proxy.port') }}:</span>
             <span class="meta-value">{{ proxy.port }}</span>
           </span>
           <span class="meta-item">
-            <span class="meta-label">Connections:</span>
+            <span class="meta-label">{{ t('server.proxy.connections') }}:</span>
             <span class="meta-value">{{ proxy.conns }}</span>
           </span>
           <span class="meta-item" v-if="proxy.clientID">
-            <span class="meta-label">Client:</span>
+            <span class="meta-label">{{ t('server.proxy.client') }}:</span>
             <span class="meta-value">{{
               proxy.user ? `${proxy.user}.${proxy.clientID}` : proxy.clientID
             }}</span>
@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { Top, Bottom } from '@element-plus/icons-vue'
 import { formatFileSize } from '../utils/format'
@@ -65,6 +66,7 @@ interface Props {
 
 const props = defineProps<Props>()
 const route = useRoute()
+const { t } = useI18n()
 
 const proxyLink = computed(() => {
   const base = `/proxy/${props.proxy.name}`

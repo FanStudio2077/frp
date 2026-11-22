@@ -15,9 +15,11 @@
 package client
 
 import (
+	"encoding/json"
 	"net/http"
 
 	adminapi "github.com/fatedier/frp/client/http"
+	v1 "github.com/fatedier/frp/pkg/config/v1"
 	"github.com/fatedier/frp/client/proxy"
 	httppkg "github.com/fatedier/frp/pkg/util/http"
 	netpkg "github.com/fatedier/frp/pkg/util/net"
@@ -40,6 +42,31 @@ func (svr *Service) registerRouteHandlers(helper *httppkg.RouterRegisterHelper) 
 	subRouter.HandleFunc("/api/config", httppkg.MakeHTTPHandlerFunc(apiController.PutConfig)).Methods(http.MethodPut)
 	subRouter.HandleFunc("/api/proxy/{name}/config", httppkg.MakeHTTPHandlerFunc(apiController.GetProxyConfig)).Methods(http.MethodGet)
 	subRouter.HandleFunc("/api/visitor/{name}/config", httppkg.MakeHTTPHandlerFunc(apiController.GetVisitorConfig)).Methods(http.MethodGet)
+	subRouter.HandleFunc("/api/servers", httppkg.MakeHTTPHandlerFunc(func(ctx *httppkg.Context) (any, error) {
+		return map[string]any{"active": svr.ActiveServer(), "servers": svr.ServerStates()}, nil
+	})).Methods(http.MethodGet)
+	subRouter.HandleFunc("/api/servers", httppkg.MakeHTTPHandlerFunc(func(ctx *httppkg.Context) (any, error) {
+		body, err := ctx.Body()
+		if err != nil {
+			return nil, httppkg.NewError(http.StatusBadRequest, err.Error())
+		}
+		var payload struct {
+			Servers []v1.ServerEndpoint `json:"servers"`
+		}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			return nil, httppkg.NewError(http.StatusBadRequest, err.Error())
+		}
+		if err := svr.UpdateServers(payload.Servers); err != nil {
+			return nil, httppkg.NewError(http.StatusBadRequest, err.Error())
+		}
+		return nil, nil
+	})).Methods(http.MethodPut)
+	subRouter.HandleFunc("/api/servers/{name}/activate", httppkg.MakeHTTPHandlerFunc(func(ctx *httppkg.Context) (any, error) {
+		if err := svr.ActivateServer(ctx.Param("name")); err != nil {
+			return nil, httppkg.NewError(http.StatusNotFound, err.Error())
+		}
+		return nil, nil
+	})).Methods(http.MethodPost)
 
 	if svr.storeSource != nil {
 		subRouter.HandleFunc("/api/store/proxies", httppkg.MakeHTTPHandlerFunc(apiController.ListStoreProxies)).Methods(http.MethodGet)

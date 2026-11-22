@@ -16,9 +16,11 @@ package net
 
 import (
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fatedier/frp/pkg/util/util"
@@ -28,6 +30,19 @@ type HTTPAuthMiddleware struct {
 	user          string
 	passwd        string
 	authFailDelay time.Duration
+	users         map[string]string
+	roles         map[string]string
+	mu            sync.RWMutex
+}
+
+type authRoleKey struct{}
+
+// RoleFromContext returns the authenticated user role stored by the auth middleware.
+func RoleFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(authRoleKey{}).(string); ok {
+		return v
+	}
+	return ""
 }
 
 func NewHTTPAuthMiddleware(user, passwd string) *HTTPAuthMiddleware {
@@ -42,20 +57,52 @@ func (authMid *HTTPAuthMiddleware) SetAuthFailDelay(delay time.Duration) *HTTPAu
 	return authMid
 }
 
+// SetUsers configures additional users and their roles.
+func (authMid *HTTPAuthMiddleware) SetUsers(users map[string]string, roles map[string]string) *HTTPAuthMiddleware {
+	authMid.mu.Lock()
+	authMid.users = users
+	authMid.roles = roles
+	authMid.mu.Unlock()
+	return authMid
+}
+
 func (authMid *HTTPAuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authMid.mu.RLock()
+		legacyUser, legacyPass := authMid.user, authMid.passwd
+		users, roles := authMid.users, authMid.roles
+		authMid.mu.RUnlock()
 		reqUser, reqPasswd, hasAuth := r.BasicAuth()
-		if (authMid.user == "" && authMid.passwd == "") ||
-			(hasAuth && util.ConstantTimeEqString(reqUser, authMid.user) &&
-				util.ConstantTimeEqString(reqPasswd, authMid.passwd)) {
+		if legacyUser == "" && legacyPass == "" && len(users) == 0 {
 			next.ServeHTTP(w, r)
-		} else {
-			if authMid.authFailDelay > 0 {
-				time.Sleep(authMid.authFailDelay)
-			}
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
 		}
+		if hasAuth {
+			role := ""
+			if legacyUser != "" || legacyPass != "" {
+				if util.ConstantTimeEqString(reqUser, legacyUser) && util.ConstantTimeEqString(reqPasswd, legacyPass) {
+					role = "admin"
+				}
+			}
+			if role == "" {
+				if pw, ok := users[reqUser]; ok && util.ConstantTimeEqString(reqPasswd, pw) {
+					role = roles[reqUser]
+					if role == "" {
+						role = "viewer"
+					}
+				}
+			}
+			if role != "" {
+				ctx := context.WithValue(r.Context(), authRoleKey{}, role)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+		}
+		if authMid.authFailDelay > 0 {
+			time.Sleep(authMid.authFailDelay)
+		}
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 	})
 }
 

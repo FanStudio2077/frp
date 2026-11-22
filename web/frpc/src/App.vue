@@ -1,9 +1,10 @@
 <template>
+  <el-config-provider :locale="elLocale">
   <div id="app">
     <header class="header">
       <div class="header-content">
         <div class="brand-section">
-          <button v-if="isMobile" class="hamburger-btn" @click="toggleSidebar" aria-label="Toggle menu">
+          <button v-if="isMobile" class="hamburger-btn" @click="toggleSidebar" :aria-label="t('common.toggleMenu')">
             <span class="hamburger-icon">&#9776;</span>
           </button>
           <div class="logo-wrapper">
@@ -11,7 +12,7 @@
           </div>
           <span class="divider">/</span>
           <span class="brand-name">frp</span>
-          <span class="badge">Client</span>
+          <span class="badge">{{ t('client.brandBadge') }}</span>
         </div>
 
         <div class="header-controls">
@@ -23,6 +24,21 @@
           >
             <GitHubIcon class="github-icon" />
           </a>
+          <el-dropdown trigger="click" class="lang-switch" @command="setLocale">
+            <span class="lang-switch-label">{{ currentLangLabel }}</span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item
+                  v-for="l in availableLocales"
+                  :key="l.value"
+                  :command="l.value"
+                  :disabled="l.value === locale"
+                >
+                  {{ l.label }}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-switch
             v-model="isDark"
             inline-prompt
@@ -50,7 +66,7 @@
             :class="{ active: route.path.startsWith('/proxies') }"
             @click="closeSidebar"
           >
-            Proxies
+            {{ t('client.nav.proxies') }}
           </router-link>
           <router-link
             to="/visitors"
@@ -58,7 +74,15 @@
             :class="{ active: route.path.startsWith('/visitors') }"
             @click="closeSidebar"
           >
-            Visitors
+            {{ t('client.nav.visitors') }}
+          </router-link>
+          <router-link
+            to="/servers"
+            class="sidebar-link"
+            :class="{ active: route.path.startsWith('/servers') }"
+            @click="closeSidebar"
+          >
+            {{ t('client.nav.servers') }}
           </router-link>
           <router-link
             to="/config"
@@ -66,7 +90,7 @@
             :class="{ active: route.path === '/config' }"
             @click="closeSidebar"
           >
-            Config
+            {{ t('client.nav.config') }}
           </router-link>
         </nav>
       </aside>
@@ -76,20 +100,29 @@
       </main>
     </div>
   </div>
+  </el-config-provider>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDark } from '@vueuse/core'
 import { Moon, Sunny } from '@element-plus/icons-vue'
 import GitHubIcon from './assets/icons/github.svg?component'
 import LogoIcon from './assets/icons/logo.svg?component'
 import { useResponsive } from './composables/useResponsive'
+import { useI18n } from 'vue-i18n'
+import { useLocale } from '@shared/i18n/useLocale'
 
 const route = useRoute()
 const isDark = useDark()
 const { isMobile } = useResponsive()
+
+const { t } = useI18n()
+const { locale, elLocale, availableLocales, setLocale } = useLocale()
+const currentLangLabel = computed(
+  () => availableLocales.value.find((l) => l.value === locale.value)?.label ?? '',
+)
 
 const sidebarOpen = ref(false)
 

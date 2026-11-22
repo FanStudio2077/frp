@@ -1,4 +1,7 @@
-import { enableAutoUnmount } from '@vue/test-utils'
+import { config, enableAutoUnmount } from '@vue/test-utils'
+import { createI18nForApp } from '../shared/i18n'
+
+config.global.plugins = [createI18nForApp('frpc')]
 import { afterAll, afterEach, vi } from 'vitest'
 
 const originalFetch = globalThis.fetch
