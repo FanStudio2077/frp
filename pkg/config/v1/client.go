@@ -90,8 +90,6 @@ type ClientCommonConfig struct {
 
 // ServerConfig describes one server endpoint for frpc multi-server support.
 type ServerEndpoint struct {
-	// Auth optionally overrides the global auth for this server.
-	Auth       AuthClientConfig `json:"auth,omitempty"`
 	Name       string `json:"name,omitempty"`
 	ServerAddr string `json:"serverAddr,omitempty"`
 	ServerPort int    `json:"serverPort,omitempty"`

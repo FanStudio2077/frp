@@ -80,10 +80,7 @@ type HealthCheckConfig struct {
 	// If the type is "http", a GET request will be made to the endpoint
 	// specified by HealthCheckURL. If the response is not a 200, the health
 	// check fails.
-	Type string `json:"type"`
-	// ServerName binds this proxy to a configured server (multi-server mode).
-	// Empty means the default/primary server.
-	ServerName string `json:"serverName,omitempty"` // tcp | http
+	Type string `json:"type"` // tcp | http
 	// TimeoutSeconds specifies the number of seconds to wait for a health
 	// check attempt to connect. If the timeout is reached, this counts as a
 	// health check failure. By default, this value is 3.
