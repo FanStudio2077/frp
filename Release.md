@@ -1,3 +1,13 @@
+## Custom Build v0.73.0
+
+* 服务端/客户端 Web 面板中英双语 i18n（默认中文，可切换，可扩展）。
+* frpc 多服务器配置与故障转移（面板 Servers 管理页）。
+* frps 面板增强：操作审计日志、客户端强制下线、代理批量删除、实时监控告警、告警阈值热更新。
+* frps 通用配置热重载（API/SIGHUP，热应用鉴权/告警等；监听端口需重启）。
+* 配置驱动的多用户 RBAC（admin/viewer）与面板用户管理页。
+
+---
+
 ## Features
 
 * frpc can verify server certificates using system CAs, optionally combined with CAs from `trustedCaFile`.
