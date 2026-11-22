@@ -1,0 +1,28 @@
+services:
+  frpc:
+    image: ghcr.io/fanstudio2077/frpc:v0.73.0
+    container_name: frpc
+    restart: unless-stopped
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/frp/frpc.toml <<'EOF'
+        serverAddr = "YOUR_SERVER_IP"
+        serverPort = 7000
+        auth.method = "token"
+        auth.token = "CHANGE_ME_TOKEN"
+
+        webServer.addr = "0.0.0.0"
+        webServer.port = 7400
+        webServer.user = "admin"
+        webServer.password = "CHANGE_ME_FRPC"
+
+        [[proxies]]
+        name = "ssh"
+        type = "tcp"
+        localIP = "127.0.0.1"
+        localPort = 22
+        remotePort = 6000
+        EOF
+        exec /usr/bin/frpc -c /etc/frp/frpc.toml

@@ -1,0 +1,35 @@
+services:
+  frps:
+    image: ghcr.io/fanstudio2077/frps:v0.73.0
+    container_name: frps
+    restart: unless-stopped
+    # 宝塔/Linux 用 host 网络，代理端口无需逐个映射
+    network_mode: host
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/frp/frps.toml <<'EOF'
+        bindAddr = "0.0.0.0"
+        bindPort = 7000
+        kcpBindPort = 7000
+        vhostHTTPPort = 80
+        vhostHTTPSPort = 443
+        subDomainHost = "frp.example.com"
+
+        auth.method = "token"
+        auth.token = "CHANGE_ME_TOKEN"
+
+        webServer.addr = "0.0.0.0"
+        webServer.port = 7500
+        webServer.user = "admin"
+        webServer.password = "CHANGE_ME_ADMIN"
+        webServer.users = [ { user = "viewer", password = "CHANGE_ME_VIEWER", role = "viewer" } ]
+
+        alerts.enabled = true
+        alerts.maxOnlineClients = 100
+        alerts.maxCurConns = 1000
+        alerts.checkIntervalSeconds = 10
+
+        log.level = "info"
+        EOF
+        exec /usr/bin/frps -c /etc/frp/frps.toml
